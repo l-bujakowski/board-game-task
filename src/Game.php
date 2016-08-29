@@ -3,18 +3,24 @@ declare(strict_types=1);
 
 namespace BoardGame;
 
+use DateInterval;
 use UnexpectedValueException;
 
-class Game
+class Game implements TimerObserver
 {
     const STATE_CONTINUES = 'CONTINUES';
     const STATE_LOST = 'LOST';
     const STATE_WON = 'WON';
+    const STATE_TIMEOUT = 'TIMEOUT';
     const BOARD_TOKENS = 20;
     const MAX_ATTEMPTS = 5;
+    const TIME_LIMIT = 60; // in seconds
 
     /** @var int */
     private $winningToken;
+
+    /** @var Timer */
+    private $timer;
 
     /** @var string */
     private $state;
@@ -22,15 +28,23 @@ class Game
     /** @var array */
     private $guesses = [];
 
-    private function __construct(int $winningTokenPosition)
+    private function __construct(int $winningTokenPosition, Timer $timer)
     {
         $this->winningToken = $winningTokenPosition;
+        $this->timer = $timer;
+        $this->setupTimer();
         $this->state = static::STATE_CONTINUES;
     }
 
-    public static function startNew(WinningTokenResolver $winningToken): Game
+    private function setupTimer()
     {
-        return new Game($winningTokenPosition = $winningToken->resolve());
+        $this->timer->setFor(new DateInterval(sprintf('PT%sS', static::TIME_LIMIT)));
+        $this->timer->register($this);
+    }
+
+    public static function startNew(WinningTokenResolver $winningToken, Timer $timer): Game
+    {
+        return new Game($winningTokenPosition = $winningToken->resolve(), $timer);
     }
 
     public function guess(int $tokenPosition)
@@ -77,11 +91,12 @@ class Game
     {
         if ($this->hasHit($tokenPosition)) {
             $this->state = static::STATE_WON;
-            return;
+        } elseif ($this->hasReachedAttemptsLimit()) {
+            $this->state = static::STATE_LOST;
         }
 
-        if ($this->hasReachedAttemptsLimit()) {
-            $this->state = static::STATE_LOST;
+        if ($this->state !== static::STATE_CONTINUES) {
+            $this->timer->stop();
         }
     }
 
@@ -98,5 +113,10 @@ class Game
     public function state(): string
     {
         return $this->state;
+    }
+
+    public function timeout()
+    {
+        $this->state = static::STATE_TIMEOUT;
     }
 }
