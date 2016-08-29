@@ -1,0 +1,15 @@
+{
+    "name": "luigi/board-game",
+    "description": "Job interview task solution.",
+    "type": "app",
+    "license": "Unlicense",
+    "config": {
+        "bin-dir": "bin"
+    },
+    "autoload": {"psr-4": {"BoardGame\\": "src"}},
+    "require": {},
+    "require-dev": {
+        "phpspec/phpspec": "^3.0"
+    }
+}
+

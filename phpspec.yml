@@ -1,0 +1,4 @@
+suites:
+    default:
+        namespace: BoardGame
+        psr4_prefix: BoardGame
